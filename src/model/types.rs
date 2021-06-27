@@ -10,14 +10,14 @@ use std::{cmp::Ordering, hash::Hash};
 use uuid::Uuid;
 
 use crate::logic::integer_decode;
-use crate::parser::types::uuid_parser;
-use crate::parser::types::{boolean, sp};
+use crate::parser::types::{boolean, char_parse, datetime_parser, precise_number_parser, sp};
 use crate::parser::types::{hashmap, string};
+use crate::parser::types::{nil, uuid_parser};
 
 #[allow(clippy::derive_hash_xor_eq)] // for now
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Types {
-    Char(char),
+    Char(char), // check
     Integer(isize),
     String(String), // check
     Uuid(Uuid),     // check
@@ -25,10 +25,10 @@ pub enum Types {
     Boolean(bool),               // check
     Vector(Vec<Types>),          // check
     Map(HashMap<String, Types>), // check
-    Hash(String),
-    Precise(String),
-    DateTime(DateTime<Utc>),
-    Nil(Nil),
+    Hash(String),                // not to be created like this
+    Precise(String),             // check
+    DateTime(DateTime<Utc>),     // check
+    Nil(Nil),                    // check
 }
 
 pub fn wql_value(input: &str) -> IResult<&str, Types, VerboseError<&str>> {
@@ -39,6 +39,10 @@ pub fn wql_value(input: &str) -> IResult<&str, Types, VerboseError<&str>> {
             map(uuid_parser, Types::Uuid),
             map(string, Types::String),
             map(boolean, Types::Boolean),
+            map(nil, Types::Nil),
+            map(char_parse, Types::Char),
+            map(datetime_parser, Types::DateTime),
+            map(precise_number_parser, Types::Precise),
         )),
     )(input)
 }
@@ -254,12 +258,16 @@ mod tests {
                     vec![(
                         "a".to_owned(),
                         Types::Map(
-                            vec![(
-                                "b".to_owned(),
-                                Types::Uuid(
-                                    Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8").unwrap()
-                                )
-                            )]
+                            vec![
+                                (
+                                    "b".to_owned(),
+                                    Types::Uuid(
+                                        Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8")
+                                            .unwrap()
+                                    )
+                                ),
+                                ("c".to_owned(), Types::Char('g'))
+                            ]
                             .iter()
                             .cloned()
                             .collect::<HashMap<String, Types>>()
@@ -270,7 +278,7 @@ mod tests {
                     .collect::<HashMap<String, Types>>()
                 )
             )),
-            wql_value("{a: {b: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8}}")
+            wql_value("{a: {b: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8, c: 'g',} }")
         );
     }
 
