@@ -1,5 +1,6 @@
-use nom::error::{context, VerboseError};
+use nom::error::context;
 
+use crate::model::error::WqlError;
 use crate::model::Operation;
 use crate::{
     model::Wql,
@@ -27,16 +28,4 @@ pub fn parse_wql(input: &str) -> Result<Wql, WqlError> {
             _ => unimplemented!(),
         })
         .map_err(|e| WqlError::Parse(e))?
-}
-
-#[derive(Debug, PartialEq)]
-pub enum WqlError<'b> {
-    Plain(String),
-    Parse(nom::Err<VerboseError<&'b str>>),
-}
-
-impl<'b> From<nom::Err<VerboseError<&'b str>>> for WqlError<'b> {
-    fn from(e: nom::Err<VerboseError<&'b str>>) -> Self {
-        WqlError::Parse(e)
-    }
 }

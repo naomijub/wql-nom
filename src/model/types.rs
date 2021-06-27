@@ -1,26 +1,46 @@
 use chrono::{DateTime, Utc};
+use nom::branch::alt;
+use nom::combinator::map;
+use nom::error::VerboseError;
+use nom::sequence::preceded;
+use nom::IResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cmp::Ordering, hash::Hash};
 use uuid::Uuid;
 
 use crate::logic::integer_decode;
+use crate::parser::types::uuid_parser;
+use crate::parser::types::{boolean, sp};
+use crate::parser::types::{hashmap, string};
 
 #[allow(clippy::derive_hash_xor_eq)] // for now
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Types {
     Char(char),
     Integer(isize),
-    String(String),
-    Uuid(Uuid),
+    String(String), // check
+    Uuid(Uuid),     // check
     Float(f64),
-    Boolean(bool),
-    Vector(Vec<Types>),
-    Map(HashMap<String, Types>),
+    Boolean(bool),               // check
+    Vector(Vec<Types>),          // check
+    Map(HashMap<String, Types>), // check
     Hash(String),
     Precise(String),
     DateTime(DateTime<Utc>),
     Nil(Nil),
+}
+
+pub fn wql_value(input: &str) -> IResult<&str, Types, VerboseError<&str>> {
+    preceded(
+        sp,
+        alt((
+            map(hashmap, Types::Map),
+            map(uuid_parser, Types::Uuid),
+            map(string, Types::String),
+            map(boolean, Types::Boolean),
+        )),
+    )(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -195,5 +215,89 @@ impl From<Vec<Types>> for Types {
 impl From<HashMap<String, Types>> for Types {
     fn from(m: HashMap<String, Types>) -> Self {
         Self::Map(m)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn parse_map_with_uuid() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Map(
+                    vec![(
+                        "a".to_owned(),
+                        Types::Uuid(
+                            Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8").unwrap()
+                        )
+                    )]
+                    .iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                )
+            )),
+            wql_value("{a: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8}")
+        );
+    }
+
+    #[test]
+    fn parse_map_with_map_uuid() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Map(
+                    vec![(
+                        "a".to_owned(),
+                        Types::Map(
+                            vec![(
+                                "b".to_owned(),
+                                Types::Uuid(
+                                    Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8").unwrap()
+                                )
+                            )]
+                            .iter()
+                            .cloned()
+                            .collect::<HashMap<String, Types>>()
+                        )
+                    )]
+                    .iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                )
+            )),
+            wql_value("{a: {b: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8}}")
+        );
+    }
+
+    #[test]
+    fn parse_map_with_str() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Map(
+                    vec![
+                        (
+                            "a".to_owned(),
+                            Types::Uuid(
+                                Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8").unwrap()
+                            )
+                        ),
+                        (
+                            "b".to_owned(),
+                            Types::String("this is a string? yes!".to_owned())
+                        )
+                    ]
+                    .iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                )
+            )),
+            wql_value("{a: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8, b: \"this is a string? yes!\" }")
+        );
     }
 }
