@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{cmp::Ordering, hash::Hash};
-use std::{collections::HashMap};
 use uuid::Uuid;
 
 use crate::logic::integer_decode;
@@ -183,5 +183,17 @@ impl From<DateTime<Utc>> for Types {
 impl From<Nil> for Types {
     fn from(n: Nil) -> Self {
         Self::Nil(n)
+    }
+}
+
+impl From<Vec<Types>> for Types {
+    fn from(v: Vec<Types>) -> Self {
+        Self::Vector(v)
+    }
+}
+
+impl From<HashMap<String, Types>> for Types {
+    fn from(m: HashMap<String, Types>) -> Self {
+        Self::Map(m)
     }
 }

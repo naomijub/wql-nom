@@ -6,7 +6,7 @@ pub enum Wql {
     CreateEntity {
         name: String,
         uniques: Option<Vec<String>>,
-        encrupts: Option<Vec<String>>,
+        encrypts: Option<Vec<String>>,
     },
 }
 
@@ -34,6 +34,14 @@ pub enum Operation {
     JOIN,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum CreateOptions {
+    #[allow(non_camel_case_types)]
+    UNIQUES,
+    #[allow(non_camel_case_types)]
+    ENCRYPT,
+}
+
 impl From<&str> for Operation {
     fn from(i: &str) -> Self {
         match i.to_uppercase().as_str() {
@@ -48,6 +56,16 @@ impl From<&str> for Operation {
             "RELATION" => Operation::RELATION,
             "JOIN" => Operation::JOIN,
             _ => unimplemented!("no other operation supported"),
+        }
+    }
+}
+
+impl From<&str> for CreateOptions {
+    fn from(i: &str) -> Self {
+        match i.to_uppercase().as_str() {
+            "UNIQUES" => CreateOptions::UNIQUES,
+            "ENCRYPT" => CreateOptions::ENCRYPT,
+            _ => unimplemented!("no other create option supported"),
         }
     }
 }

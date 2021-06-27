@@ -1,10 +1,9 @@
-use crate::model::Operation;
+use crate::model::{CreateOptions, Operation};
 use nom::{
-    Err as NomErr,
     branch::alt,
     bytes::streaming::tag_no_case,
     error::{context, VerboseError},
-    IResult,
+    Err as NomErr, IResult,
 };
 
 const ENTITY: &str = "ENTITY";
@@ -29,19 +28,24 @@ pub fn operation(input: &str) -> IResult<&str, Operation, VerboseError<&str>> {
 }
 
 pub fn entity(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    context(
-        "entity",
-        tag_no_case("ENTITY"),
-
-    )(input)
-    .and_then(|(next_input, res)| match res {
+    context("entity", tag_no_case("ENTITY"))(input).and_then(|(next_input, res)| match res {
         ENTITY => Ok((next_input, ENTITY)),
         _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
     })
 }
 
+pub fn create_options(input: &str) -> IResult<&str, CreateOptions, VerboseError<&str>> {
+    context(
+        "create_options",
+        alt((tag_no_case("UNIQUES"), tag_no_case("ENCRYPT"))),
+    )(input)
+    .map(|(next_input, res)| (next_input, res.into()))
+}
+
 #[cfg(test)]
 mod operation_test {
+    use nom::error::{ErrorKind, VerboseErrorKind};
+
     use super::*;
 
     #[test]
@@ -49,7 +53,27 @@ mod operation_test {
         assert_eq!(
             operation("Create and some random string after"),
             Ok((" and some random string after", Operation::CREATE))
-        )
+        );
+
+        assert_eq!(
+            operation("Error and some random string after"),
+            Err(NomErr::Error(VerboseError {
+                errors: vec![
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Nom(ErrorKind::Tag)
+                    ),
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Nom(ErrorKind::Alt)
+                    ),
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Context("operation")
+                    )
+                ]
+            }))
+        );
     }
 
     #[test]
@@ -129,6 +153,53 @@ mod operation_test {
         assert_eq!(
             entity("ENTITY and some random string after"),
             Ok((" and some random string after", ENTITY))
-        )
+        );
+
+        assert_eq!(
+            entity("Error and some random string after"),
+            Err(NomErr::Error(VerboseError {
+                errors: vec![
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Nom(ErrorKind::Tag)
+                    ),
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Context("entity")
+                    )
+                ]
+            }))
+        );
+    }
+
+    #[test]
+    fn create_options_test() {
+        assert_eq!(
+            create_options("EnCryPt and some random string after"),
+            Ok((" and some random string after", CreateOptions::ENCRYPT))
+        );
+        assert_eq!(
+            create_options("UniQUES and some random string after"),
+            Ok((" and some random string after", CreateOptions::UNIQUES))
+        );
+        assert_eq!(
+            create_options("Error and some random string after"),
+            Err(NomErr::Error(VerboseError {
+                errors: vec![
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Nom(ErrorKind::Tag)
+                    ),
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Nom(ErrorKind::Alt)
+                    ),
+                    (
+                        "Error and some random string after",
+                        VerboseErrorKind::Context("create_options")
+                    )
+                ]
+            }))
+        );
     }
 }
