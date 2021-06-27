@@ -6,7 +6,7 @@ description = "Crate to parse WQL using parse combinators"
 readme = "README.md"
 documentation = "https://github.com/naomijub/wql-nom/blob/main/README.md"
 repository = "https://github.com/naomijub/wql-noml"
-keywords = ["wql", "query language", "wooridb"]
+keywords = ["wql", "query", "language", "wooridb"]
 license = "MIT"
 edition = "2018"
 
