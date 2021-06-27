@@ -139,7 +139,7 @@ impl Hash for Types {
             }
             Types::Boolean(t) => t.hash(state),
             Types::Vector(t) => t.hash(state),
-            Types::Map(t) => t.into_iter().fold((), |acc, (k, v)| {
+            Types::Map(t) => t.iter().fold((), |acc, (k, v)| {
                 k.hash(state);
                 v.hash(state);
                 acc

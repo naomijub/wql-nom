@@ -40,12 +40,10 @@ pub fn create_content(
                 } else {
                     (res.1, (Some(keys2), Some(keys1)))
                 }
+            } else if option1 == CreateOptions::UNIQUES {
+                (res.1, (Some(keys1), None))
             } else {
-                if option1 == CreateOptions::UNIQUES {
-                    (res.1, (Some(keys1), None))
-                } else {
-                    (res.1, (None, Some(keys1)))
-                }
+                (res.1, (None, Some(keys1)))
             }
         } else {
             (res.1, (None, None))

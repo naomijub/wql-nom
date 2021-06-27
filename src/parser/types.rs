@@ -3,11 +3,7 @@ use std::collections::HashMap;
 use nom::{
     branch::alt,
     bytes::streaming::{escaped, tag, take_while},
-    character::{
-        complete::{anychar, char},
-        is_alphanumeric, is_newline, is_space,
-        streaming::one_of,
-    },
+    character::{complete::char, is_alphanumeric, is_newline, is_space, streaming::one_of},
     combinator::{cut, map, map_res, recognize, value},
     error::{context, ErrorKind, ParseError, VerboseError},
     multi::separated_list0,
