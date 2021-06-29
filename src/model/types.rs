@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use nom::branch::alt;
 use nom::combinator::map;
 use nom::error::VerboseError;
+use nom::number::streaming::double;
 use nom::sequence::preceded;
 use nom::IResult;
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,9 @@ use std::{cmp::Ordering, hash::Hash};
 use uuid::Uuid;
 
 use crate::logic::integer_decode;
-use crate::parser::types::{boolean, char_parse, datetime_parser, precise_number_parser, sp};
+use crate::parser::types::{
+    boolean, char_parse, datetime_parser, integer, precise_number_parser, sp, vector,
+};
 use crate::parser::types::{hashmap, string};
 use crate::parser::types::{nil, uuid_parser};
 
@@ -18,10 +21,10 @@ use crate::parser::types::{nil, uuid_parser};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Types {
     Char(char), // check
-    Integer(isize),
-    String(String), // check
-    Uuid(Uuid),     // check
-    Float(f64),
+    Integer(i128),
+    String(String),              // check
+    Uuid(Uuid),                  // check
+    Float(f64),                  // check
     Boolean(bool),               // check
     Vector(Vec<Types>),          // check
     Map(HashMap<String, Types>), // check
@@ -43,6 +46,9 @@ pub fn wql_value(input: &str) -> IResult<&str, Types, VerboseError<&str>> {
             map(char_parse, Types::Char),
             map(datetime_parser, Types::DateTime),
             map(precise_number_parser, Types::Precise),
+            map(integer, Types::Integer),
+            map(vector, Types::Vector),
+            map(double, Types::Float),
         )),
     )(input)
 }
@@ -162,8 +168,8 @@ impl From<char> for Types {
     }
 }
 
-impl From<isize> for Types {
-    fn from(i: isize) -> Self {
+impl From<i128> for Types {
+    fn from(i: i128) -> Self {
         Self::Integer(i)
     }
 }
@@ -307,5 +313,22 @@ mod tests {
             )),
             wql_value("{a: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8, b: \"this is a string? yes!\" }")
         );
+    }
+
+    #[test]
+    fn float_vectors() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Vector(vec![
+                    Types::Float(23.4),
+                    Types::Float(345435.6),
+                    Types::Float(-2813.4),
+                    Types::Precise(String::from("7564")),
+                    Types::Integer(74),
+                ])
+            )),
+            wql_value("[23.4, 345435.6, -2813.4, 7564P, 74i]")
+        )
     }
 }

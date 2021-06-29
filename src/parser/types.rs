@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    num::{ParseFloatError, ParseIntError},
+};
 
 use chrono::{DateTime, Utc};
 use nom::{
@@ -12,6 +15,7 @@ use nom::{
     combinator::{cut, map, map_res, recognize, value},
     error::{context, ErrorKind, ParseError, VerboseError},
     multi::separated_list0,
+    number::streaming::be_i128,
     sequence::{preceded, separated_pair, terminated},
     AsChar, IResult, InputTakeAtPosition,
 };
@@ -23,12 +27,26 @@ pub fn uuid_parser(s: &str) -> IResult<&str, Uuid, VerboseError<&str>> {
     map_res(recognize(alphanumerichyphen), Uuid::parse_str)(s)
 }
 
+/// Not the safest thing -> unwrap
+pub fn integer(num: &str) -> IResult<&str, i128, VerboseError<&str>> {
+    context("integer", recognize(terminated(precise_number, char('i'))))(num)
+        .map(|(next, res)| (next, i128_parser(&res[..res.len() - 1]).unwrap_or(0)))
+}
+
+// pub fn integer(num: CompleteStr) -> IResult<&str, i128, VerboseError<&str>> {
+//     map_res(recognize(i128_chars), i128_parser)(num)
+// }
+
+pub fn double(num: &str) -> IResult<&str, f64, VerboseError<&str>> {
+    map_res(recognize(f64_chars), f64_parser)(num)
+}
+
 pub fn precise_number_parser(num: &str) -> IResult<&str, String, VerboseError<&str>> {
     context(
         "precise_number",
         recognize(terminated(precise_number, char('P'))),
     )(num)
-    .map(|(next, res)| (next, res.to_string()))
+    .map(|(next, res)| (next, res[..res.len() - 1].to_string()))
 }
 
 pub fn datetime_parser(datetime: &str) -> IResult<&str, DateTime<Utc>, VerboseError<&str>> {
@@ -37,6 +55,14 @@ pub fn datetime_parser(datetime: &str) -> IResult<&str, DateTime<Utc>, VerboseEr
 
 fn underlay_datetimeparser(datetime: &str) -> Result<DateTime<Utc>, chrono::ParseError> {
     datetime.parse::<DateTime<Utc>>()
+}
+
+fn i128_parser(num: &str) -> Result<i128, ParseIntError> {
+    num.parse::<i128>()
+}
+
+fn f64_parser(num: &str) -> Result<f64, ParseFloatError> {
+    num.parse::<f64>()
 }
 
 pub fn alphanumerichyphen1(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
@@ -174,9 +200,9 @@ where
     s.split_at_position1_complete(
         |item| {
             let ch = item.as_char();
-            !(ch == '.' || is_digit(ch as u8))
+            !(ch == '.' || ch == '-' || is_digit(ch as u8))
         },
-        ErrorKind::AlphaNumeric,
+        ErrorKind::Digit,
     )
 }
 
@@ -233,6 +259,34 @@ where
                 || is_alphanumeric(ch as u8))
         },
         ErrorKind::AlphaNumeric,
+    )
+}
+
+fn f64_chars<T, E: ParseError<T>>(s: T) -> IResult<T, T, E>
+where
+    T: InputTakeAtPosition,
+    <T as InputTakeAtPosition>::Item: AsChar,
+{
+    s.split_at_position1_complete(
+        |item| {
+            let ch = item.as_char();
+            !(ch == '-' || ch == '.' || is_digit(ch as u8))
+        },
+        ErrorKind::Digit,
+    )
+}
+
+fn i128_chars<T, E: ParseError<T>>(s: T) -> IResult<T, T, E>
+where
+    T: InputTakeAtPosition,
+    <T as InputTakeAtPosition>::Item: AsChar,
+{
+    s.split_at_position1_complete(
+        |item| {
+            let ch = item.as_char();
+            !(ch == '-' || is_digit(ch as u8))
+        },
+        ErrorKind::Digit,
     )
 }
 
@@ -454,12 +508,26 @@ mod test {
     fn precise_numbers_test() {
         assert_eq!(
             precise_number_parser("124638374P"),
-            Ok(("", String::from("124638374P")))
+            Ok(("", String::from("124638374")))
         );
         assert_eq!(
             precise_number_parser("12463.8374P"),
-            Ok(("", String::from("12463.8374P")))
+            Ok(("", String::from("12463.8374")))
         );
+    }
+
+    #[test]
+    fn integer_test() {
+        assert_eq!(Ok(("", 46546)), integer("46546i"));
+        assert_eq!(Ok(("", -46546)), integer("-46546i"));
+    }
+
+    #[test]
+    fn double_test() {
+        assert_eq!(Ok(("", 46546.0)), double("46546"));
+        assert_eq!(Ok(("", 465.46)), double("465.46"));
+        assert_eq!(Ok(("", -46546.0)), double("-46546"));
+        assert_eq!(Ok(("", -465.46)), double("-465.46"));
     }
 
     fn datetime() -> DateTime<Utc> {
