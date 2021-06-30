@@ -1,5 +1,11 @@
+pub mod error;
 pub mod types;
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use self::types::Types;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Wql {
@@ -7,6 +13,11 @@ pub enum Wql {
         name: String,
         uniques: Option<Vec<String>>,
         encrypts: Option<Vec<String>>,
+    },
+    Insert {
+        entity: String,
+        content: HashMap<String, Types>,
+        id: Option<Uuid>,
     },
 }
 

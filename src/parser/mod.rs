@@ -1,6 +1,8 @@
-use nom::error::{context, VerboseError};
+use nom::error::context;
 
+use crate::model::error::WqlError;
 use crate::model::Operation;
+use crate::parser::operation_content::insert_content;
 use crate::{
     model::Wql,
     parser::{keywords::operation, operation_content::create_content},
@@ -20,23 +22,22 @@ pub fn parse_wql(input: &str) -> Result<Wql, WqlError> {
                     encrypts,
                 }),
                 Err(e) => Err(WqlError::Plain(format!(
-                    "Couldn't parse input {}.\n Parsing error: {:?}",
+                    "Couldn't parse input `{}` as CREATE.\n Parsing error: {:?}",
+                    input, e
+                ))),
+            },
+            Operation::INSERT => match insert_content(next) {
+                Ok((entity, (content, id))) => Ok(Wql::Insert {
+                    entity: entity.to_string(),
+                    content,
+                    id,
+                }),
+                Err(e) => Err(WqlError::Plain(format!(
+                    "Couldn't parse input `{}` as INSERT.\n Parsing error: {:?}",
                     input, e
                 ))),
             },
             _ => unimplemented!(),
         })
         .map_err(|e| WqlError::Parse(e))?
-}
-
-#[derive(Debug, PartialEq)]
-pub enum WqlError<'b> {
-    Plain(String),
-    Parse(nom::Err<VerboseError<&'b str>>),
-}
-
-impl<'b> From<nom::Err<VerboseError<&'b str>>> for WqlError<'b> {
-    fn from(e: nom::Err<VerboseError<&'b str>>) -> Self {
-        WqlError::Parse(e)
-    }
 }

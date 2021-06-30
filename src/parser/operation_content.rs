@@ -1,21 +1,30 @@
+use std::collections::HashMap;
+
 use nom::{
     branch::alt,
     error::VerboseError,
     sequence::{delimited, preceded, tuple},
     IResult,
 };
+use uuid::Uuid;
 
 use crate::{
-    model::CreateOptions,
+    model::{types::Types, CreateOptions},
     parser::{
         keywords::{create_options, entity},
         types::set,
     },
 };
 
-use crate::parser::types::sp;
+use crate::parser::{
+    types::sp,
+    {
+        keywords::into,
+        types::{alphanumerickey1, hashmap},
+    },
+};
 
-use super::types::alphanumerickey1;
+use super::{keywords::with, types::uuid_parser};
 
 pub fn create_content(
     input: &str,
@@ -40,12 +49,10 @@ pub fn create_content(
                 } else {
                     (res.1, (Some(keys2), Some(keys1)))
                 }
+            } else if option1 == CreateOptions::UNIQUES {
+                (res.1, (Some(keys1), None))
             } else {
-                if option1 == CreateOptions::UNIQUES {
-                    (res.1, (Some(keys1), None))
-                } else {
-                    (res.1, (None, Some(keys1)))
-                }
+                (res.1, (None, Some(keys1)))
             }
         } else {
             (res.1, (None, None))
@@ -53,10 +60,34 @@ pub fn create_content(
     })
 }
 
+pub fn insert_content(
+    input: &str,
+) -> IResult<&str, (HashMap<String, Types>, Option<Uuid>), VerboseError<&str>> {
+    preceded(
+        sp,
+        tuple((
+            hashmap,
+            preceded(sp, into),
+            alt((
+                preceded(sp, alphanumerickey1),
+                delimited(sp, alphanumerickey1, sp),
+            )),
+        )),
+    )(input)
+    .map(|(next, res)| match inner_insert(next) {
+        Err(_) => (res.2, (res.0, None)),
+        Ok((_, id)) => (res.2, (res.0, Some(id))),
+    })
+}
+
 fn inner_create_option(
     input: &str,
 ) -> IResult<&str, (CreateOptions, Vec<String>), VerboseError<&str>> {
     preceded(sp, tuple((create_options, sp, set)))(input).map(|(next, v)| (next, (v.0, v.2)))
+}
+
+fn inner_insert(input: &str) -> IResult<&str, Uuid, VerboseError<&str>> {
+    preceded(sp, tuple((with, sp, uuid_parser)))(input).map(|(next, v)| (next, v.2))
 }
 
 #[cfg(test)]

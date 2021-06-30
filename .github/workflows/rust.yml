@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: DB-tests
+    - name: tests
       run: cargo test -- --nocapture
 
   fmt:
@@ -23,17 +23,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: DB-FMT
+    - name: FMT
       run: cargo fmt -- --check
 
 
-  build_db:
+  clippy:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: WQL-install-clippy
+    - name: install-clippy
       run: rustup component add clippy
-    - name: WQL-clippy
+    - name: clippy
       run: cargo clippy -- -W clippy::pedantic
 

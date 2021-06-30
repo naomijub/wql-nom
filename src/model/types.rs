@@ -1,26 +1,56 @@
 use chrono::{DateTime, Utc};
+use nom::branch::alt;
+use nom::combinator::map;
+use nom::error::VerboseError;
+use nom::number::streaming::double;
+use nom::sequence::preceded;
+use nom::IResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cmp::Ordering, hash::Hash};
 use uuid::Uuid;
 
 use crate::logic::integer_decode;
+use crate::parser::types::{
+    boolean, char_parse, datetime_parser, integer, precise_number_parser, sp, vector,
+};
+use crate::parser::types::{hashmap, string};
+use crate::parser::types::{nil, uuid_parser};
 
-#[allow(clippy::derive_hash_xor_eq)] // for now
+#[allow(clippy::derive_hash_xor_eq)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Types {
     Char(char),
-    Integer(isize),
+    Integer(i128), // Review
     String(String),
     Uuid(Uuid),
     Float(f64),
     Boolean(bool),
     Vector(Vec<Types>),
     Map(HashMap<String, Types>),
-    Hash(String),
+    Hash(String), // not to be created like this
     Precise(String),
     DateTime(DateTime<Utc>),
     Nil(Nil),
+}
+
+pub fn wql_value(input: &str) -> IResult<&str, Types, VerboseError<&str>> {
+    preceded(
+        sp,
+        alt((
+            map(hashmap, Types::Map),
+            map(uuid_parser, Types::Uuid),
+            map(string, Types::String),
+            map(boolean, Types::Boolean),
+            map(nil, Types::Nil),
+            map(char_parse, Types::Char),
+            map(datetime_parser, Types::DateTime),
+            map(precise_number_parser, Types::Precise),
+            map(integer, Types::Integer),
+            map(vector, Types::Vector),
+            map(double, Types::Float),
+        )),
+    )(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -119,7 +149,7 @@ impl Hash for Types {
             }
             Types::Boolean(t) => t.hash(state),
             Types::Vector(t) => t.hash(state),
-            Types::Map(t) => t.into_iter().fold((), |acc, (k, v)| {
+            Types::Map(t) => t.iter().fold((), |acc, (k, v)| {
                 k.hash(state);
                 v.hash(state);
                 acc
@@ -138,8 +168,8 @@ impl From<char> for Types {
     }
 }
 
-impl From<isize> for Types {
-    fn from(i: isize) -> Self {
+impl From<i128> for Types {
+    fn from(i: i128) -> Self {
         Self::Integer(i)
     }
 }
@@ -195,5 +225,110 @@ impl From<Vec<Types>> for Types {
 impl From<HashMap<String, Types>> for Types {
     fn from(m: HashMap<String, Types>) -> Self {
         Self::Map(m)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn parse_map_with_uuid() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Map(
+                    vec![(
+                        "a".to_owned(),
+                        Types::Uuid(
+                            Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8").unwrap()
+                        )
+                    )]
+                    .iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                )
+            )),
+            wql_value("{a: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8}")
+        );
+    }
+
+    #[test]
+    fn parse_map_with_map_uuid() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Map(
+                    vec![(
+                        "a".to_owned(),
+                        Types::Map(
+                            vec![
+                                (
+                                    "b".to_owned(),
+                                    Types::Uuid(
+                                        Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8")
+                                            .unwrap()
+                                    )
+                                ),
+                                ("c".to_owned(), Types::Char('g'))
+                            ]
+                            .iter()
+                            .cloned()
+                            .collect::<HashMap<String, Types>>()
+                        )
+                    )]
+                    .iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                )
+            )),
+            wql_value("{a: {b: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8, c: 'g',} }")
+        );
+    }
+
+    #[test]
+    fn parse_map_with_str() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Map(
+                    vec![
+                        (
+                            "a".to_owned(),
+                            Types::Uuid(
+                                Uuid::from_str("634f6c5b-476f-4cc0-97d0-c1c9468cf8d8").unwrap()
+                            )
+                        ),
+                        (
+                            "b".to_owned(),
+                            Types::String("this is a string? yes!".to_owned())
+                        )
+                    ]
+                    .iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                )
+            )),
+            wql_value("{a: 634f6c5b-476f-4cc0-97d0-c1c9468cf8d8, b: \"this is a string? yes!\" }")
+        );
+    }
+
+    #[test]
+    fn float_vectors() {
+        assert_eq!(
+            Ok((
+                "",
+                Types::Vector(vec![
+                    Types::Float(23.4),
+                    Types::Float(345435.6),
+                    Types::Float(-2813.4),
+                    Types::Precise(String::from("7564")),
+                    Types::Integer(74),
+                ])
+            )),
+            wql_value("[23.4, 345435.6, -2813.4, 7564P, 74i]")
+        )
     }
 }
