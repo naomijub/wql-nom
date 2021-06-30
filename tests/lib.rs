@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use wql_nom::{parse_wql, Wql};
+    use std::{collections::HashMap, str::FromStr};
+
+    use uuid::Uuid;
+    use wql_nom::{parse_wql, Types, Wql};
 
     #[test]
     fn create_content_empty() {
@@ -58,5 +61,42 @@ mod tests {
                 "create ENTITY hello_world UNIQUES #{hello, world} Encrypt #{hello2, world2}"
             )
         );
+    }
+
+    #[test]
+    fn simple_insert() {
+        assert_eq!(
+            Ok(Wql::Insert {
+                entity: String::from("my_entity"),
+                id: None,
+                content: vec![
+                    (String::from("hello"), Types::String("world".to_string())),
+                    (String::from("age"), Types::Integer(30)),
+                ]
+                .iter()
+                .cloned()
+                .collect::<HashMap<String, Types>>()
+            }),
+            parse_wql("Insert {hello: \"world\", age: 30i} INTO my_entity")
+        )
+    }
+
+    #[test]
+    fn with_id_insert() {
+        assert_eq!(
+            Ok(
+                Wql::Insert {
+                    entity: String::from("my_entity"),
+                    id: Some(Uuid::from_str("2e796540-ee72-40fd-b4a2-a2315d697d00").unwrap()),
+                    content: vec![
+                        (String::from("hello"), Types::String("world".to_string())),
+                        (String::from("age"), Types::Integer(30)),
+                    ].iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                }
+            ),
+            parse_wql("Insert {hello: \"world\", age: 30i} INTO my_entity WITH 2e796540-ee72-40fd-b4a2-a2315d697d00")
+        )
     }
 }

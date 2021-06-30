@@ -17,21 +17,21 @@ use crate::parser::types::{
 use crate::parser::types::{hashmap, string};
 use crate::parser::types::{nil, uuid_parser};
 
-#[allow(clippy::derive_hash_xor_eq)] // for now
+#[allow(clippy::derive_hash_xor_eq)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Types {
-    Char(char), // check
-    Integer(i128),
-    String(String),              // check
-    Uuid(Uuid),                  // check
-    Float(f64),                  // check
-    Boolean(bool),               // check
-    Vector(Vec<Types>),          // check
-    Map(HashMap<String, Types>), // check
-    Hash(String),                // not to be created like this
-    Precise(String),             // check
-    DateTime(DateTime<Utc>),     // check
-    Nil(Nil),                    // check
+    Char(char),
+    Integer(i128), // Review
+    String(String),
+    Uuid(Uuid),
+    Float(f64),
+    Boolean(bool),
+    Vector(Vec<Types>),
+    Map(HashMap<String, Types>),
+    Hash(String), // not to be created like this
+    Precise(String),
+    DateTime(DateTime<Utc>),
+    Nil(Nil),
 }
 
 pub fn wql_value(input: &str) -> IResult<&str, Types, VerboseError<&str>> {

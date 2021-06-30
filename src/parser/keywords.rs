@@ -7,6 +7,8 @@ use nom::{
 };
 
 const ENTITY: &str = "ENTITY";
+const INTO: &str = "INTO";
+const WITH: &str = "WITH";
 
 pub fn operation(input: &str) -> IResult<&str, Operation, VerboseError<&str>> {
     context(
@@ -28,8 +30,22 @@ pub fn operation(input: &str) -> IResult<&str, Operation, VerboseError<&str>> {
 }
 
 pub fn entity(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    context("entity", tag_no_case("ENTITY"))(input).and_then(|(next_input, res)| match res {
+    context("entity", tag_no_case(ENTITY))(input).and_then(|(next_input, res)| match res {
         ENTITY => Ok((next_input, ENTITY)),
+        _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
+    })
+}
+
+pub fn into(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    context("into", tag_no_case(INTO))(input).and_then(|(next_input, res)| match res {
+        INTO => Ok((next_input, INTO)),
+        _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
+    })
+}
+
+pub fn with(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    context("with", tag_no_case(WITH))(input).and_then(|(next_input, res)| match res {
+        WITH => Ok((next_input, WITH)),
         _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
     })
 }
