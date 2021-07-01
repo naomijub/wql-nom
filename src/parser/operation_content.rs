@@ -22,8 +22,8 @@ use crate::parser::{
 };
 
 use super::{
-    keywords::{content, set as keyword_set, with},
-    types::{set, uuid_parser},
+    keywords::{content, from, set as keyword_set, with},
+    types::{alphanumericboth1, set, uuid_parser},
 };
 
 pub fn create_content(
@@ -97,6 +97,15 @@ pub fn update_content(
         )),
     )(input)
     .map(|(_, res)| (res.0, (res.1, res.2, res.4)))
+}
+
+pub fn evict_content(input: &str) -> IResult<&str, Option<&str>, VerboseError<&str>> {
+    preceded(sp, tuple((preceded(sp, alphanumericboth1),)))(input).map(|(next, res)| {
+        match tuple((preceded(sp, from), preceded(sp, alphanumerickey1)))(next) {
+            Ok(inner) => (res.0, Some(inner.1 .1)),
+            Err(_) => (res.0, None),
+        }
+    })
 }
 
 fn inner_create_option(

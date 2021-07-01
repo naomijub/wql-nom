@@ -29,6 +29,10 @@ pub enum Wql {
         id: Uuid,
         content: HashMap<String, Types>,
     },
+    Evict {
+        entity: String,
+        id: Option<Uuid>,
+    },
 }
 
 #[derive(Debug, PartialEq)]

@@ -137,4 +137,26 @@ mod tests {
             parse_wql("UPDATE this_entity CONTENT {hello: \"world\", age: 30i} INTO 2e796540-ee72-40fd-b4a2-a2315d697d00")
         )
     }
+
+    #[test]
+    fn evict_id() {
+        assert_eq!(
+            Ok(Wql::Evict {
+                entity: String::from("evict_entity"),
+                id: Uuid::parse_str("2e796540-ee72-40fd-b4a2-a2315d697d00").ok()
+            }),
+            parse_wql("EVICT 2e796540-ee72-40fd-b4a2-a2315d697d00 FROM evict_entity")
+        )
+    }
+
+    #[test]
+    fn evict_entity() {
+        assert_eq!(
+            Ok(Wql::Evict {
+                entity: String::from("evict_entity"),
+                id: None
+            }),
+            parse_wql("EVICT evict_entity")
+        )
+    }
 }

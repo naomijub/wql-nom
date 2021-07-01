@@ -1,7 +1,9 @@
 use nom::error::context;
+use uuid::Uuid;
 
 use crate::model::error::WqlError;
 use crate::model::Operation;
+use crate::parser::operation_content::evict_content;
 use crate::parser::operation_content::insert_content;
 use crate::parser::operation_content::update_content;
 use crate::{
@@ -60,6 +62,20 @@ pub fn parse_wql(input: &str) -> Result<Wql, WqlError> {
                 },
                 Err(e) => Err(WqlError::Plain(format!(
                     "Couldn't parse input `{}` as UPDATE.\n Parsing error: {:?}",
+                    input, e
+                ))),
+            },
+            Operation::EVICT => match evict_content(next) {
+                Ok((entity_id, None)) => Ok(Wql::Evict {
+                    entity: entity_id.to_string(),
+                    id: None,
+                }),
+                Ok((entity_id, Some(entity))) => Ok(Wql::Evict {
+                    entity: entity.to_string(),
+                    id: Some(Uuid::parse_str(entity_id)?),
+                }),
+                Err(e) => Err(WqlError::Plain(format!(
+                    "Couldn't parse input `{}` as EVICT.\n Parsing error: {:?}",
                     input, e
                 ))),
             },
