@@ -108,6 +108,18 @@ pub fn evict_content(input: &str) -> IResult<&str, Option<&str>, VerboseError<&s
     })
 }
 
+pub fn delete_content(input: &str) -> IResult<&str, Uuid, VerboseError<&str>> {
+    preceded(
+        sp,
+        tuple((
+            preceded(sp, uuid_parser),
+            preceded(sp, from),
+            preceded(sp, alphanumerickey1),
+        )),
+    )(input)
+    .map(|(_, res)| (res.2, res.0))
+}
+
 fn inner_create_option(
     input: &str,
 ) -> IResult<&str, (CreateOptions, Vec<String>), VerboseError<&str>> {

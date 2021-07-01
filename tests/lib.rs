@@ -159,4 +159,15 @@ mod tests {
             parse_wql("EVICT evict_entity")
         )
     }
+
+    #[test]
+    fn delete() {
+        assert_eq!(
+            Ok(Wql::Delete {
+                entity: String::from("delete_entity"),
+                id: Uuid::parse_str("2e796540-ee72-40fd-b4a2-a2315d697d00").unwrap()
+            }),
+            parse_wql("Delete 2e796540-ee72-40fd-b4a2-a2315d697d00 FROM delete_entity")
+        )
+    }
 }

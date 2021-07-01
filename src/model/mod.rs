@@ -33,6 +33,11 @@ pub enum Wql {
         entity: String,
         id: Option<Uuid>,
     },
+    Delete {
+        entity: String,
+        id: Uuid,
+        // at: DateTime<Utc>
+    },
 }
 
 #[derive(Debug, PartialEq)]
