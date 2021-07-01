@@ -99,4 +99,42 @@ mod tests {
             parse_wql("Insert {hello: \"world\", age: 30i} INTO my_entity WITH 2e796540-ee72-40fd-b4a2-a2315d697d00")
         )
     }
+
+    #[test]
+    fn update_set() {
+        assert_eq!(
+            Ok(
+                Wql::UpdateSet {
+                    name: String::from("this_entity"),
+                    id: Uuid::from_str("2e796540-ee72-40fd-b4a2-a2315d697d00").unwrap(),
+                    content: vec![
+                        (String::from("hello"), Types::String("world".to_string())),
+                        (String::from("age"), Types::Integer(30)),
+                    ].iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                }
+            ),
+            parse_wql("UPDATE this_entity SET {hello: \"world\", age: 30i} INTO 2e796540-ee72-40fd-b4a2-a2315d697d00")
+        )
+    }
+
+    #[test]
+    fn update_content() {
+        assert_eq!(
+            Ok(
+                Wql::UpdateContent {
+                    name: String::from("this_entity"),
+                    id: Uuid::from_str("2e796540-ee72-40fd-b4a2-a2315d697d00").unwrap(),
+                    content: vec![
+                        (String::from("hello"), Types::String("world".to_string())),
+                        (String::from("age"), Types::Integer(30)),
+                    ].iter()
+                    .cloned()
+                    .collect::<HashMap<String, Types>>()
+                }
+            ),
+            parse_wql("UPDATE this_entity CONTENT {hello: \"world\", age: 30i} INTO 2e796540-ee72-40fd-b4a2-a2315d697d00")
+        )
+    }
 }

@@ -3,9 +3,13 @@ use nom::error::context;
 use crate::model::error::WqlError;
 use crate::model::Operation;
 use crate::parser::operation_content::insert_content;
+use crate::parser::operation_content::update_content;
 use crate::{
     model::Wql,
-    parser::{keywords::operation, operation_content::create_content},
+    parser::{
+        keywords::{operation, CONTENT, SET},
+        operation_content::create_content,
+    },
 };
 
 pub mod keywords;
@@ -34,6 +38,28 @@ pub fn parse_wql(input: &str) -> Result<Wql, WqlError> {
                 }),
                 Err(e) => Err(WqlError::Plain(format!(
                     "Couldn't parse input `{}` as INSERT.\n Parsing error: {:?}",
+                    input, e
+                ))),
+            },
+            Operation::UPDATE => match update_content(next) {
+                Ok((entity, (update_type, content, id))) => match update_type {
+                    CONTENT => Ok(Wql::UpdateContent {
+                        name: entity.to_string(),
+                        id,
+                        content,
+                    }),
+                    SET => Ok(Wql::UpdateSet {
+                        name: entity.to_string(),
+                        id,
+                        content,
+                    }),
+                    _ => Err(WqlError::Plain(format!(
+                        "Couldn't parse input `{}` as UPDATE.\n Parsing error: {:?}",
+                        input, "UPDATE type not found"
+                    ))),
+                },
+                Err(e) => Err(WqlError::Plain(format!(
+                    "Couldn't parse input `{}` as UPDATE.\n Parsing error: {:?}",
                     input, e
                 ))),
             },

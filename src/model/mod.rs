@@ -19,6 +19,16 @@ pub enum Wql {
         content: HashMap<String, Types>,
         id: Option<Uuid>,
     },
+    UpdateSet {
+        name: String,
+        id: Uuid,
+        content: HashMap<String, Types>,
+    },
+    UpdateContent {
+        name: String,
+        id: Uuid,
+        content: HashMap<String, Types>,
+    },
 }
 
 #[derive(Debug, PartialEq)]
