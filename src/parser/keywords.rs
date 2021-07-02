@@ -9,6 +9,9 @@ use nom::{
 const ENTITY: &str = "ENTITY";
 const INTO: &str = "INTO";
 const WITH: &str = "WITH";
+pub const SET: &str = "SET";
+pub const CONTENT: &str = "CONTENT";
+const FROM: &str = "FROM";
 
 pub fn operation(input: &str) -> IResult<&str, Operation, VerboseError<&str>> {
     context(
@@ -46,6 +49,27 @@ pub fn into(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
 pub fn with(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     context("with", tag_no_case(WITH))(input).and_then(|(next_input, res)| match res {
         WITH => Ok((next_input, WITH)),
+        _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
+    })
+}
+
+pub fn set(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    context("set", tag_no_case(SET))(input).and_then(|(next_input, res)| match res {
+        SET => Ok((next_input, SET)),
+        _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
+    })
+}
+
+pub fn content(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    context("content", tag_no_case(CONTENT))(input).and_then(|(next_input, res)| match res {
+        CONTENT => Ok((next_input, CONTENT)),
+        _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
+    })
+}
+
+pub fn from(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    context("from", tag_no_case(FROM))(input).and_then(|(next_input, res)| match res {
+        FROM => Ok((next_input, FROM)),
         _ => Err(NomErr::Error(VerboseError { errors: vec![] })),
     })
 }

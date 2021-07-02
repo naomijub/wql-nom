@@ -62,6 +62,10 @@ pub fn alphanumerickey1(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
     alphanumerickey(s)
 }
 
+pub fn alphanumericboth1(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    alphanumericboth(s)
+}
+
 pub fn set(input: &str) -> IResult<&str, Vec<String>, VerboseError<&str>> {
     context(
         "keys set",
@@ -204,6 +208,20 @@ where
         |item| {
             let ch = item.as_char();
             !(ch == '_' || is_alphanumeric(ch as u8))
+        },
+        ErrorKind::AlphaNumeric,
+    )
+}
+
+fn alphanumericboth<T, E: ParseError<T>>(s: T) -> IResult<T, T, E>
+where
+    T: InputTakeAtPosition,
+    <T as InputTakeAtPosition>::Item: AsChar,
+{
+    s.split_at_position1_complete(
+        |item| {
+            let ch = item.as_char();
+            !(ch == '_' || ch == '-' || is_alphanumeric(ch as u8))
         },
         ErrorKind::AlphaNumeric,
     )

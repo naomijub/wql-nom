@@ -10,10 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     model::{types::Types, CreateOptions},
-    parser::{
-        keywords::{create_options, entity},
-        types::set,
-    },
+    parser::keywords::{create_options, entity},
 };
 
 use crate::parser::{
@@ -24,7 +21,10 @@ use crate::parser::{
     },
 };
 
-use super::{keywords::with, types::uuid_parser};
+use super::{
+    keywords::{content, from, set as keyword_set, with},
+    types::{alphanumericboth1, set, uuid_parser},
+};
 
 pub fn create_content(
     input: &str,
@@ -78,6 +78,46 @@ pub fn insert_content(
         Err(_) => (res.2, (res.0, None)),
         Ok((_, id)) => (res.2, (res.0, Some(id))),
     })
+}
+
+pub fn update_content(
+    input: &str,
+) -> IResult<&str, (&str, HashMap<String, Types>, Uuid), VerboseError<&str>> {
+    preceded(
+        sp,
+        tuple((
+            alt((
+                preceded(sp, alphanumerickey1),
+                delimited(sp, alphanumerickey1, sp),
+            )),
+            alt((preceded(sp, keyword_set), preceded(sp, content))),
+            preceded(sp, hashmap),
+            preceded(sp, into),
+            preceded(sp, uuid_parser),
+        )),
+    )(input)
+    .map(|(_, res)| (res.0, (res.1, res.2, res.4)))
+}
+
+pub fn evict_content(input: &str) -> IResult<&str, Option<&str>, VerboseError<&str>> {
+    preceded(sp, tuple((preceded(sp, alphanumericboth1),)))(input).map(|(next, res)| {
+        match tuple((preceded(sp, from), preceded(sp, alphanumerickey1)))(next) {
+            Ok(inner) => (res.0, Some(inner.1 .1)),
+            Err(_) => (res.0, None),
+        }
+    })
+}
+
+pub fn delete_content(input: &str) -> IResult<&str, Uuid, VerboseError<&str>> {
+    preceded(
+        sp,
+        tuple((
+            preceded(sp, uuid_parser),
+            preceded(sp, from),
+            preceded(sp, alphanumerickey1),
+        )),
+    )(input)
+    .map(|(_, res)| (res.2, res.0))
 }
 
 fn inner_create_option(
